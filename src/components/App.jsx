@@ -1,3 +1,14 @@
+import Searchbar from './Searchbar/Searchbar';
+import ImageGallery from './ImageGallery/ImageGallery';
+import fetchImagesWithQuery from 'services/api';
+import Modal from './Modal/Modal';
+import Loader from './Loader/Loader';
+import Button from './Button/Button';
+import s from './App.module.css';
+import { Component } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 export class App extends Component {
   state = {
     searchData: '',
@@ -8,10 +19,11 @@ export class App extends Component {
     isLoading: false,
     error: null,
   };
-  componentDidUpdate(prevState, nextState) {
+
+  componentDidUpdate(prevProps, prevState) {
     const prevPage = prevState.page;
     const prevSearchData = prevState.searchData;
-    const { searchData, page, image } = this.state;
+    const { searchData, page, images } = this.state;
     if (prevPage !== page || prevSearchData !== searchData) {
       try {
         this.setState({ isLoading: true });
@@ -33,37 +45,52 @@ export class App extends Component {
       }
     }
   }
-}
-onSumit = searchData => {
-  if (searchData.trim() === '') {
-    return toast.error('Enter the meaning for search');
-  } else if (searchData === this.state.searchData) {
-    return;
+
+  onSubmit = searchData => {
+    if (searchData.trim() === '') {
+      return toast.error('Enter the meaning for search');
+    } else if (searchData === this.state.searchData) {
+      return;
+    }
+    this.setState({
+      searchData: searchData,
+      page: 1,
+      images: [],
+    });
+  };
+
+  nextPage = () => {
+    this.setState(({ page }) => ({ page: page + 1 }));
+  };
+
+  openModal = index => {
+    this.setState(({ images }) => ({
+      showModal: true,
+      largeImage: images[index].largeImageURL,
+    }));
+  };
+
+  toggleModal = () => {
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  };
+
+  render() {
+    const { toggleModal, openModal, nextPage, onSubmit } = this;
+    const { images, isLoading, largeImage, showModal } = this.state;
+
+    return (
+      <div className={s.App}>
+        <Searchbar onSubmit={onSubmit} />
+        {images.length !== 0 && (
+          <ImageGallery images={images} openModal={openModal} />
+        )}
+        {showModal && (
+          <Modal toggleModal={toggleModal} largeImage={largeImage} />
+        )}
+        {isLoading && <Loader />}
+        <ToastContainer autoClose={2500} />
+        {images.length >= 12 && <Button nextPage={nextPage} />}
+      </div>
+    );
   }
-  this.setState({
-    searchData: searchData,
-    page: 1,
-    images: [],
-  });
-};
-nextPage = () => {
-  this.setState(({page}) => ({page: page+1}))
-}
-openModal = index => {
-  this.setState(({ images }) => ({
-    showModal: true,
-    largeImage: images[index].largeImageURL,
-  }))
-}
-toogleModal = () => {
-  this.setState(({ showModal }) => ({ showModal: !showModal }))
-};
-render() {
-  const { toogleModal, openModal, nextPage, onSumit } = this;
-  const { images, isLoading, showModal, largeImage } = this.state;
-  return (
-    <div className={s.App}>
-      
-</div>
-  )
 }
