@@ -1,13 +1,19 @@
 import s from './Button.module.css';
 import PropTypes from 'prop-types';
 
-export default function Button({ nextPage }) {
+export default function Button({ onClick, isLoading }) {
   return (
-    <button type="button" className={s.Button} onClick={nextPage}>
+    <button
+      type="button"
+      className={s.Button}
+      onClick={onClick}
+      disabled={isLoading}
+    >
       Load more
     </button>
   );
 }
 Button.propTypes = {
-  nextPage: PropTypes.func.isRequired,
+  onClick: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
 };

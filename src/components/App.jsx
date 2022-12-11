@@ -18,31 +18,44 @@ export class App extends Component {
     showModal: false,
     isLoading: false,
     error: null,
+    totalImages: 0,
+    isMoreBtnHide: false,
   };
 
   componentDidUpdate(prevProps, prevState) {
     const prevPage = prevState.page;
     const prevSearchData = prevState.searchData;
-    const { searchData, page, images } = this.state;
+    const { searchData, page } = this.state;
     if (prevPage !== page || prevSearchData !== searchData) {
-      try {
-        this.setState({ isLoading: true });
-        const response = fetchImagesWithQuery(searchData, page);
-        response.then(data => {
-          data.data.hits.length === 0
-            ? toast.error('Nothing found')
-            : data.data.hits.forEach(({ id, webformatURL, largeImageURL }) => {
-                !images.some(image => image.id === id) &&
-                  this.setState(({ images }) => ({
-                    images: [...images, { id, webformatURL, largeImageURL }],
-                  }));
-              });
+      this.setState({ isLoading: true });
+      const response = fetchImagesWithQuery(searchData, page);
+      response
+        .then(({ data }) => {
+          if (data.hits.length < 12) {
+            this.setState({ isMoreBtnHide: true });
+          }
+          if (data.total === 0) {
+            this.setState({ isLoading: false });
+            return toast.info('Sorry, nothing was found for your search');
+          }
+          const normalizedImages = data.hits.map(
+            ({ id, webformatURL, largeImageURL }) => ({
+              id,
+              webformatURL,
+              largeImageURL,
+            })
+          );
+          this.setState(({ images }) => ({
+            images: [...images, ...normalizedImages],
+            totalImages: data.totalHits,
+          }));
+        })
+        .catch(error => {
+          this.setState({ error });
+        })
+        .finally(() => {
           this.setState({ isLoading: false });
         });
-      } catch (error) {
-        this.setState({ error, isLoading: false });
-      } finally {
-      }
     }
   }
 
@@ -56,13 +69,20 @@ export class App extends Component {
       searchData: searchData,
       page: 1,
       images: [],
+      isLoading: true,
+      isMoreBtnHide: false,
     });
   };
 
-  nextPage = () => {
-    this.setState(({ page }) => ({ page: page + 1 }));
+  // nextPage = () => {
+  //   this.setState(({ page }) => ({ page: page + 1 }));
+  // };
+  handleMoreSearch = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+      isLoading: true,
+    }));
   };
-
   openModal = index => {
     this.setState(({ images }) => ({
       showModal: true,
@@ -75,8 +95,9 @@ export class App extends Component {
   };
 
   render() {
-    const { toggleModal, openModal, nextPage, onSubmit } = this;
-    const { images, isLoading, largeImage, showModal } = this.state;
+    const { toggleModal, openModal, onSubmit } = this;
+    const { images, isLoading, largeImage, showModal, isMoreBtnHide } =
+      this.state;
 
     return (
       <div className={s.App}>
@@ -89,7 +110,9 @@ export class App extends Component {
         )}
         {isLoading && <Loader />}
         <ToastContainer autoClose={2500} />
-        {images.length >= 12 && <Button nextPage={nextPage} />}
+        {images.length > 0 && !isLoading && !isMoreBtnHide && (
+          <Button onClick={this.handleMoreSearch} />
+        )}
       </div>
     );
   }
